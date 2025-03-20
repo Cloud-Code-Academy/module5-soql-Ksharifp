@@ -42,6 +42,10 @@ public with sharing class SOQL {
 	//[public | private ] [static] data_type method_name (input parameters) {
 	//  The body of the method
 	//}
+	public static List<Contact> getContactsByFirstName() {
+		List<Contact> contactsNamedJohn = new List<Contact>([SELECT Id, FirstName, LastName, Name FROM Contact WHERE FirstName = 'John']);
+		return contactsNamedJohn;
+	}
 
 	/**
 	 * Question 3
@@ -53,6 +57,20 @@ public with sharing class SOQL {
 	//[public | private ] [static] data_type method_name (input parameters) {
 	//  The body of the method
 	//}
+	public static List<Id> getContactIdsByLastName() {
+		List<Contact> contactWithLastNameSmithOrJones = new List<Contact>([SELECT Id FROM Contact WHERE LastName IN ('Smith', 'Jones')]);
+		List<Id> conWithLastNameIds = new List<Id>();
+		for (Contact con : contactWithLastNameSmithOrJones) {
+				conWithLastNameIds.add(con.Id);
+		}
+		if (conWithLastNameIds.size() == 0) {
+			return null;
+		}
+
+		return conWithLastNameIds;
+	}
+
+
 
 	/**
 	 * Question 4
@@ -66,6 +84,15 @@ public with sharing class SOQL {
 	//[public | private ] [static] data_type method_name (input parameters) {
 	//  The body of the method
 	//}
+	public static List<Opportunity> accountWonOppo (Id accountId){
+		if (accountId == null) {
+			return null;
+		}
+		List<Opportunity> accWonOppo = new List<Opportunity>([SELECT Id, Name, StageName, Account.Name, Account.Id, CloseDate, Amount
+															  FROM Opportunity 
+															  WHERE Account.Id = :accountId AND StageName = 'Closed Won']);
+	return accWonOppo;
+	}
 
 	/**
 	 * Question 5
@@ -78,6 +105,14 @@ public with sharing class SOQL {
 	//  The body of the method
 	//}
 
+	public static Integer countOfAccounts (){
+		List<Account> allAccounts = new List<Account>([SELECT Id FROM Account]);
+		if (allAccounts.size() == 0) {
+			return null;
+		}
+		return allAccounts.size();
+	}
+
 	/**
 	 * Question 6
 	 * Update/Uncomment the template code to create a method
@@ -88,6 +123,12 @@ public with sharing class SOQL {
 	//[public | private ] [static] data_type method_name (input parameters) {
 	//  The body of the method
 	//}
+	public static Map<Id, Task> taskIdRecord(){
+		List<Task> tasksDueNext7Days = new List<Task>([SELECT Id, WhoId, ActivityDate FROM Task WHERE ActivityDate <= NEXT_N_DAYS:7]);
+		Map<Id, Task> taskIdRecPairMap = new Map<Id,Task>(tasksDueNext7Days);
+		return taskIdRecPairMap;
+	}
+	
 
 	/**
 	 * Question 7
