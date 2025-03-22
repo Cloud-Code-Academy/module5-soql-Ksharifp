@@ -43,7 +43,9 @@ public with sharing class SOQL {
 	//  The body of the method
 	//}
 	public static List<Contact> getContactsByFirstName() {
-		List<Contact> contactsNamedJohn = new List<Contact>([SELECT Id, FirstName, LastName, Name FROM Contact WHERE FirstName = 'John']);
+		List<Contact> contactsNamedJohn = new List<Contact>([SELECT Id, FirstName, LastName, Name 
+															 FROM Contact 
+															 WHERE FirstName = 'John']);
 		return contactsNamedJohn;
 	}
 
@@ -58,7 +60,9 @@ public with sharing class SOQL {
 	//  The body of the method
 	//}
 	public static List<Id> getContactIdsByLastName() {
-		List<Contact> contactWithLastNameSmithOrJones = new List<Contact>([SELECT Id FROM Contact WHERE LastName IN ('Smith', 'Jones')]);
+		List<Contact> contactWithLastNameSmithOrJones = new List<Contact>([SELECT Id 
+																		   FROM Contact 
+																		   WHERE LastName IN ('Smith', 'Jones')]);
 		List<Id> conWithLastNameIds = new List<Id>();
 		for (Contact con : contactWithLastNameSmithOrJones) {
 				conWithLastNameIds.add(con.Id);
@@ -124,7 +128,9 @@ public with sharing class SOQL {
 	//  The body of the method
 	//}
 	public static Map<Id, Task> taskIdRecord(){
-		List<Task> tasksDueNext7Days = new List<Task>([SELECT Id, WhoId, ActivityDate FROM Task WHERE ActivityDate <= NEXT_N_DAYS:7]);
+		List<Task> tasksDueNext7Days = new List<Task>([SELECT Id, WhoId, ActivityDate 
+													   FROM Task 
+													   WHERE ActivityDate <= NEXT_N_DAYS:7]);
 		Map<Id, Task> taskIdRecPairMap = new Map<Id,Task>(tasksDueNext7Days);
 		return taskIdRecPairMap;
 	}
@@ -141,6 +147,14 @@ public with sharing class SOQL {
 	//  The body of the method
 	//}
 
+	public static List<Contact> contactExampleEmail(){
+		String exampleEmail = 'example.com';
+		List<Contact> conExampleEmail = new List<Contact>([SELECT Id, Name, Email 
+		                                                   FROM Contact 
+														   WHERE Email LIKE '%example.com']);
+		return conExampleEmail;
+	}
+
 	/**
 	 * Question 8
 	 * Retrieves all Opportunities that have a specific keyword in their Name.
@@ -149,7 +163,10 @@ public with sharing class SOQL {
 	 * @return A list of Opportunity records.
 	 */
 	public static List<Opportunity> getOpportunitiesByNameKeyword(String keyword) {
-		return null; // Replace null with the variable you used to store the result
+		List<Opportunity> oppoWithKeyword = new List<Opportunity>([SELECT Id, Name 
+		                                                           FROM Opportunity 
+																   WHERE Name LIKE :keyword]);
+		return oppoWithKeyword; // Replace null with the variable you used to store the result
 	}
 
 	/**
@@ -158,7 +175,10 @@ public with sharing class SOQL {
 	 * @return A list of Case records.
 	 */
 	public static List<Case> getFilterCaseOrigins() {
-		return null; // Replace null with the variable you used to store the result
+		List<Case> casesWithOtherOrigin = new List<Case>([SELECT Id, Origin, CaseNumber 
+		                                                  FROM Case 
+														  WHERE Origin NOT IN ('Email', 'Web', '')]);
+		return casesWithOtherOrigin; // Replace null with the variable you used to store the result
 	}
 
 	/**
@@ -175,6 +195,15 @@ public with sharing class SOQL {
 	//  The body of the method
 	//}
 
+	public static List<Lead> filterLeadbySourceOrTitle (String leadSource, String keyword){
+		//String q = 'SELECT Id, LeadSource, Title FROM Lead WHERE LeadSource = :leadSource OR Title LIKE '
+		String titleIncludesKeyword = '%'+ keyword + '%';
+		List<Lead> filteredLeads = new List<Lead>([SELECT Id, LeadSource, Title, LastName, Company, Phone, Email
+												   FROM Lead 
+												   WHERE LeadSource = :leadSource OR Title LIKE :titleIncludesKeyword]);
+	return filteredLeads;
+	}
+
 	/**
 	 * Question 11
 	 * Returns the names of all Contacts associated with an Account.
@@ -184,16 +213,23 @@ public with sharing class SOQL {
 	 */
 	public static List<String> getContactNamesByAccount(Id accountId) {
 		// Create a list to hold the Contact LastNames
-
+		List<String> conLastNames = new List<String>();
 		// Query the Contacts
+		List<Contact> conFromAcc = new List<Contact> ([SELECT Id, LastName, FirstName, Account.Id, Account.Name
+													   FROM Contact
+													   WHERE Account.Id = :accountId]);
 		// Loop through each Contact and add the LastName to the list
-		//for () {
-		//
-		//}
-
+		for (Contact con : conFromAcc) {
+			if (!conFromAcc.isEmpty()) {
+				continue;
+			}
+			conLastNames.add(con.LastName);
+		}
 		// Return the list of Contact LastNames
-		return null; // Replace null with the variable you used to store the result
+		return conLastNames; // Replace null with the variable you used to store the result
 	}
+	
+	
 
 	/**
 	 * Question 12
