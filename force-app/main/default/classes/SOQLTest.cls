@@ -452,6 +452,7 @@ public with sharing class SOQLTest {
 		}
 	}
 
+	
 	@IsTest
 	static void testGetHighValueOpportunities() {
 		// Create test data
