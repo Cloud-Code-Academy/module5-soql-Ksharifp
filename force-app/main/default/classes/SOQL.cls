@@ -163,9 +163,10 @@ public with sharing class SOQL {
 	 * @return A list of Opportunity records.
 	 */
 	public static List<Opportunity> getOpportunitiesByNameKeyword(String keyword) {
+		String oppoKeyword = '%'+ keyword + '%';
 		List<Opportunity> oppoWithKeyword = new List<Opportunity>([SELECT Id, Name 
 		                                                           FROM Opportunity 
-																   WHERE Name LIKE :keyword]);
+																   WHERE Name LIKE :oppoKeyword]);
 		return oppoWithKeyword; // Replace null with the variable you used to store the result
 	}
 
@@ -491,28 +492,46 @@ public with sharing class SOQL {
 	 * @param List of cloned Opportunity Ids
 	 */
 	public static void cloneLineItems(Id origOppId, List<Id> cloneOppIds) {
+
 		// Query the original Opportunity Line Items
-
 		List<OpportunityLineItem> originalLineItems = new List<OpportunityLineItem>(
-			[SELECT Id, Quantity, UnitPrice, Product2Id, Opportunity.Id FROM OpportunityLineItem WHERE Opportunity.Id = :cloneOppIds]);
-		// Create a list to hold the new line items
+			[SELECT Id, Quantity, UnitPrice, Product2Id, OpportunityId, Opportunity.Pricebook2Id, PricebookEntryId
+			 FROM OpportunityLineItem 
+			 WHERE OpportunityId = :origOppId]);
 
+		// Create a list to hold the new line items
 		List<OpportunityLineItem> newLineItems = new List<OpportunityLineItem>();
+
 		// Generate a random number between 1 and 3
 		// I moved this line to inside the loop so that each line item has its own random number.
-		// If I had the line for creating random number, the same number would have been used for all line items.
+		// I think I should create a OpportunityLineItem sobject variable to be used in the loop.
+
+
 		// Loop through each cloned Opportunity Id
-
 		for (Id clonedId : cloneOppIds) {
-			// Loop through each original line item
+			if (!cloneOppIds.isEmpty()) {
+				
+				// Loop through each original line item
+				for (OpportunityLineItem lineI : originalLineItems) {
+					if (!originalLineItems.isEmpty()) {
+						
+						// Clone the original line item and add the random number to the quantity
+						// OpportunityLineItem clonedLI = clonedLineItem.clone(false,true); I realized I cannot use this because it
+						// automatically assigns the oppo ID which is unwritable.
+						// declared an sobject
 
-			for (OpportunityLineItem clonedLineItem : originalLineItems) {
-				// Clone the original line item and add the random number to the quantity
-				OpportunityLineItem clonedLI = clonedLineItem.clone(false,true);
-				Integer ranNumber = (Integer) Math.floor(Math.random() * 3) + 1;
-				clonedLineItem.quantity += ranNumber;
-				clonedLineItem.OpportunityId = clonedId;
-				newLineItems.add(clonedLineItem);
+						OpportunityLineItem newLI = new OpportunityLineItem();
+
+						// the newLI record fields to be set using the original opp and cloned LI fields
+						Integer ranNumber = (Integer) Math.floor(Math.random() * 3) + 1;
+						newLI.quantity = lineI.Quantity +ranNumber;
+						newLI.UnitPrice = lineI.UnitPrice;
+						newLI.Product2Id = lineI.Product2Id;
+						newLI.OpportunityId = clonedId;
+						newLI.PricebookEntryId = lineI.PricebookEntryId;
+						newLineItems.add(newLI);
+					}
+				}
 			}
 		}
 		// Insert the new line items
@@ -554,13 +573,17 @@ public with sharing class SOQL {
 		}
 
 		// Query the Contacts
-		List<Contact> primaryContact = new List<Contact>([SELECT Id, FirstName, AccountId FROM Contact WHERE AccountId IN : accIds]);
+		List<Contact> primaryContact = new List<Contact>(
+			[SELECT Id, FirstName, AccountId 
+			 FROM Contact 
+			 WHERE AccountId IN : accIds 
+			 ORDER BY FirstName ASC LIMIT 1]);
 
 		// Loop through each Contact and add the Account Id and Contact to the map
-		Map<Id,String> accIdConFirstName = new Map<Id,String>();
+		Map<Id,Id> accIdConFirstName = new Map<Id,Id>();
 		for (Contact con : primaryContact) {
 			if (!primaryContact.isEmpty()) {
-				accIdConFirstName.put(con.AccountId, con.FirstName);
+				accIdConFirstName.put(con.AccountId, con.Id);
 			}
 		}
 
