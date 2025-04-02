@@ -438,18 +438,48 @@ public with sharing class SOQL {
 	public static List<Account> findAccountsByLeadEmailDomains(Set<Id> leadIds) {
 		// Query the Leads
 
+		Set<Lead> leadsWithEmail = new Set<Lead>([SELECT Id, Email FROM Lead WHERE Id IN :leadIds]);
 		// Create a set of email domains from the Leads
 
+		Set<String> emailDomains = new Set<String>();
 		// Loop through each Lead
 
-		// Get the email from the Lead
+		for (Lead l : leadsWithEmail) {
+			// Check if the email is not null
 
-		// Check if the email is not null
+			if (!leadsWithEmail.isEmpty() && l.Email != null && l.Email.contains('@')) {
+			// Get the email from the Lead
+				
+				String domain = l.Email.substring(l.Email.indexOf('@') + 1);	
+				// Add the email domain to the set
+				
+				emailDomains.add(domain);
+			}
+		}
+		
+		List<Account> allAccountsWithWebsite = new List<Account>(
+			[SELECT Id, Website
+			 FROM Account WHERE Website != null]);
 
-		// Add the email domain to the set
-
+		List<Account> accountWithMatchingDomain = new List<Account>();
+		
+	
+		for (Account acc: allAccountsWithWebsite) {
+			//I figured I cannot compare the complete webiste string with just a substring of the email
+			//I am trying to get a substring of the website for each account to compare with the email domain set
+			//creating a substring to contain the domain part of the website.
+			
+			String websiteDomain;
+			if (acc.Website.startsWith('www.')) { //what other possible starting strings can a website have
+				websiteDomain = acc.Website.substring(4);
+			} 
+			if (emailDomains.contains(websiteDomain)) {
+				accountWithMatchingDomain.add(acc);
+			}
+		}
+		
 		// Query the Accounts
-		return null; // Replace null with the variable you used to store the result
+		return accountWithMatchingDomain; // Replace null with the variable you used to store the result
 	}
 
 	/**
@@ -463,17 +493,31 @@ public with sharing class SOQL {
 	public static void cloneLineItems(Id origOppId, List<Id> cloneOppIds) {
 		// Query the original Opportunity Line Items
 
+		List<OpportunityLineItem> originalLineItems = new List<OpportunityLineItem>(
+			[SELECT Id, Quantity, UnitPrice, Product2Id, Opportunity.Id FROM OpportunityLineItem WHERE Opportunity.Id = :cloneOppIds]);
 		// Create a list to hold the new line items
 
+		List<OpportunityLineItem> newLineItems = new List<OpportunityLineItem>();
 		// Generate a random number between 1 and 3
-
+		// I moved this line to inside the loop so that each line item has its own random number.
+		// If I had the line for creating random number, the same number would have been used for all line items.
 		// Loop through each cloned Opportunity Id
 
-		// Loop through each original line item
+		for (Id clonedId : cloneOppIds) {
+			// Loop through each original line item
 
-		// Clone the original line item and add the random number to the quantity
-
+			for (OpportunityLineItem clonedLineItem : originalLineItems) {
+				// Clone the original line item and add the random number to the quantity
+				OpportunityLineItem clonedLI = clonedLineItem.clone(false,true);
+				Integer ranNumber = (Integer) Math.floor(Math.random() * 3) + 1;
+				clonedLineItem.quantity += ranNumber;
+				clonedLineItem.OpportunityId = clonedId;
+				newLineItems.add(clonedLineItem);
+			}
+		}
 		// Insert the new line items
+
+		insert newLineItems;
 	}
 
 	/**
@@ -482,7 +526,10 @@ public with sharing class SOQL {
 	 * @return A list of filtered Opportunity
 	 */
 	public static List<Opportunity> getOpportunityDetailsForClosedWon() {
-		return null; // Replace null with the variable you used to store the result
+		List<Opportunity> oppoWithAccOwnerDetails = new List<Opportunity>([SELECT Id, Name, Account.Name, AccountId, Owner.Name 
+																		   FROM Opportunity
+																		   WHERE StageName = 'Closed Won']);
+		return oppoWithAccOwnerDetails; // Replace null with the variable you used to store the result
 	}
 
 	/**
@@ -491,18 +538,43 @@ public with sharing class SOQL {
 	 * Example: if there are two Contacts on the Account, "Billy" and "Abby," the 'Primary_Contact__c' will be set to "Abby."
 	 */
 	public static void setPrimaryContact() {
+		
 		//Use the getOpportunityDetailsForClosedWon() method to get the Opportunities
+		List<Opportunity> oppoToUpdate = getOpportunityDetailsForClosedWon();
+
+		// Created a string to store the contact first name
+		String conFirstName;
 
 		// Create a set of Account Ids from the Opportunities
+		Set<Id> accIds = new Set<Id>();
+		for (Opportunity opp : oppoToUpdate) {
+			if (!oppoToUpdate.isEmpty()) {
+				accIds.add(opp.AccountId);
+			}
+		}
 
 		// Query the Contacts
+		List<Contact> primaryContact = new List<Contact>([SELECT Id, FirstName, AccountId FROM Contact WHERE AccountId IN : accIds]);
 
 		// Loop through each Contact and add the Account Id and Contact to the map
+		Map<Id,String> accIdConFirstName = new Map<Id,String>();
+		for (Contact con : primaryContact) {
+			if (!primaryContact.isEmpty()) {
+				accIdConFirstName.put(con.AccountId, con.FirstName);
+			}
+		}
 
 		// Loop through each Opportunity
+		for (Opportunity opp : oppoToUpdate) {
+			if (!oppoToUpdate.isEmpty()) {
 
-		// Update the Opportunity primary contact from accountToContactMap
+				// Update the Opportunity primary contact from accountToContactMap
+			    opp.Primary_Contact__c = accIdConFirstName.get(opp.AccountId);
+			}
+		}
 
 		// Update the Opportunities
+		update oppoToUpdate;
+
 	}
 }
